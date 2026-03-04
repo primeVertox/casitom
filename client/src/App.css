@@ -230,6 +230,11 @@
   );
 }
 
+.google-wrapper {
+  display: flex;
+  justify-content: center;
+}
+
 .google-button {
   border-radius: 999px;
   border: 1px solid rgba(148, 163, 184, 0.7);
