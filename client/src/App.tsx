@@ -1,6 +1,6 @@
-import { FormEvent, useState } from 'react'
+import type { FormEvent } from 'react'
+import { useState } from 'react'
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google'
-import jwtDecode from 'jwt-decode'
 import './App.css'
 
 type AuthMode = 'signin' | 'signup'
