@@ -1,6 +1,5 @@
 import type { FormEvent } from 'react'
 import { useState } from 'react'
-import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google'
 import './App.css'
 
 type AuthMode = 'signin' | 'signup'
@@ -18,9 +17,8 @@ type AuthResponse = {
 }
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:4000'
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
 
-function AppInner() {
+function App() {
   const [mode, setMode] = useState<AuthMode>('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -165,65 +163,10 @@ function AppInner() {
                 : 'Sign In'}
             </button>
 
-            <div className="divider">
-              <span>OR CONTINUE WITH</span>
-            </div>
-
-            {GOOGLE_CLIENT_ID ? (
-              <div className="google-wrapper">
-                <GoogleLogin
-                  onSuccess={async (credentialResponse) => {
-                    try {
-                      const idToken = credentialResponse.credential
-                      if (!idToken) throw new Error('Token Google manquant')
-                      const res = await fetch(`${API_BASE}/api/auth/google`, {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ idToken }),
-                      })
-                      if (!res.ok) {
-                        const data = await res.json().catch(() => ({}))
-                        throw new Error(data.message || 'Erreur Google')
-                      }
-                      const data: AuthResponse = await res.json()
-                      localStorage.setItem('casitom_token', data.token)
-                      setUser(data.user)
-                    } catch (err: any) {
-                      setError(err.message || 'Erreur Google')
-                    }
-                  }}
-                  onError={() => {
-                    setError('Connexion Google échouée.')
-                  }}
-                />
-              </div>
-            ) : (
-              <button
-                className="google-button"
-                type="button"
-                onClick={() =>
-                  alert(
-                    'Configure VITE_GOOGLE_CLIENT_ID pour activer Google Login.'
-                  )
-                }
-              >
-                Continue with Google
-              </button>
-            )}
           </form>
         </div>
       </div>
     </div>
-  )
-}
-
-function App() {
-  return (
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID || 'placeholder'}>
-      <AppInner />
-    </GoogleOAuthProvider>
   )
 }
 

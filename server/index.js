@@ -6,13 +6,10 @@ const { Low } = require('lowdb');
 const { JSONFile } = require('lowdb/node');
 const { nanoid } = require('nanoid');
 const path = require('path');
-const { OAuth2Client } = require('google-auth-library');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
-const GOOGLE_CLIENT_ID =
-  process.env.GOOGLE_CLIENT_ID || 'REMPLACE_AVEC_TON_CLIENT_ID';
 
 app.use(cors());
 app.use(express.json());
@@ -38,11 +35,6 @@ function createToken(user) {
 async function findUserByEmail(email) {
   await db.read();
   return db.data.users.find((u) => u.email === email);
-}
-
-async function findUserByGoogleId(googleId) {
-  await db.read();
-  return db.data.users.find((u) => u.googleId === googleId);
 }
 
 app.post('/api/auth/register', async (req, res) => {
@@ -118,81 +110,6 @@ app.post('/api/auth/login', async (req, res) => {
       settings: user.settings,
     },
   });
-});
-
-const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
-
-app.post('/api/auth/google', async (req, res) => {
-  const { idToken } = req.body;
-  if (!idToken) {
-    return res.status(400).json({ message: 'Jeton Google manquant.' });
-  }
-  if (!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID === 'REMPLACE_AVEC_TON_CLIENT_ID') {
-    return res
-      .status(500)
-      .json({ message: 'Google OAuth non configuré sur le serveur.' });
-  }
-
-  try {
-    const ticket = await googleClient.verifyIdToken({
-      idToken,
-      audience: GOOGLE_CLIENT_ID,
-    });
-    const payload = ticket.getPayload();
-    const googleId = payload.sub;
-    const email = payload.email;
-    const name = payload.name;
-
-    await db.read();
-    let user = await findUserByGoogleId(googleId);
-    if (!user) {
-      user =
-        (await findUserByEmail(email)) ||
-        {
-          id: nanoid(),
-          email,
-          username: name || email.split('@')[0],
-          googleId,
-          passwordHash: null,
-          balance: 1000,
-          stats: {
-            sessions: 0,
-            wins: 0,
-            losses: 0,
-            totalWagered: 0,
-            biggestWin: 0,
-            netProfit: 0,
-          },
-          settings: {
-            masterVolume: 0.5,
-          },
-        };
-
-      const existingIndex = db.data.users.findIndex((u) => u.id === user.id);
-      if (existingIndex === -1) {
-        db.data.users.push(user);
-      } else {
-        db.data.users[existingIndex] = user;
-      }
-      await db.write();
-    }
-
-    const token = createToken(user);
-    res.json({
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        username: user.username,
-        balance: user.balance,
-        stats: user.stats,
-        settings: user.settings,
-      },
-    });
-  } catch (err) {
-    console.error('Erreur Google OAuth', err);
-    res.status(401).json({ message: 'Authentification Google invalide.' });
-  }
 });
 
 function authMiddleware(req, res, next) {
